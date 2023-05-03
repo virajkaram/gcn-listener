@@ -1,7 +1,7 @@
 import numpy as np
 from gcn_kafka import Consumer
 from gcn_listener.gcn_utils import get_dateobs, get_properties, get_notice_type, \
-    get_root_from_payload
+    get_root_from_payload, inv_notice_types_dict
 from astropy.time import Time
 import os
 import gcn
@@ -57,6 +57,7 @@ def needs_action(voevent,
 def listen(hasNS_thresh: float = None,
            far_thresh_per_year: float = None,
            action: list = ['email'],
+           allowed_notice_types: list = default_allowed_notice_type_list,
            email_recipients: str = os.getenv('RECIPIENT_EMAIL', None),
            phone_recipients: str = os.getenv('RECIPIENT_PHONE', None)
            ):
@@ -93,7 +94,8 @@ def listen(hasNS_thresh: float = None,
                             f"~/Data/gcn_listener/voevents/{Time(dateobs).isot}")
 
                 action_needed = needs_action(voevent, hasNS_thresh=hasNS_thresh,
-                                             far_thresh_per_year=far_thresh_per_year)
+                                             far_thresh_per_year=far_thresh_per_year,
+                                             allowed_notice_types=allowed_notice_types)
 
                 if action_needed:
                     if 'email' in action:
@@ -130,10 +132,23 @@ if __name__ == '__main__':
                         help='Threshold for HasNS')
     parser.add_argument('-FAR_thresh', default=None, type=float,
                         help='Threshold for FAR')
-    parser.add_argument('-action', choices=['email', 'sms', 'call'], default='email',
+    parser.add_argument('-action', choices=['email', 'sms', 'call'], default=['email'],
+                        help='Action to take', nargs="+")
+    parser.add_argument('-notices', choices=['PRELIMINARY', 'INITIAL', 'RETRACTION',
+                                             'UPDATE', 'TEST', 'EARLY_WARNING',
+                                             'COUNTERPART', 'all'],
+                        default=['PRELIMINARY', 'INITIAL', 'RETRACTION', 'UPDATE'],
                         help='Action to take', nargs="+")
 
     args = parser.parse_args()
+
+    notices = args.notices
+    if 'all' in notices:
+        notices = ['PRELIMINARY', 'INITIAL', 'RETRACTION', 'UPDATE', 'TEST',
+                   'EARLY_WARNING', 'COUNTERPART']
+
+    allowed_notice_types = [inv_notice_types_dict[f"LVC_{notice}"]
+                            for notice in notices]
 
     if 'email' in args.action:
         if os.getenv('RECIPIENT_EMAIL', None) is None:
@@ -172,5 +187,6 @@ if __name__ == '__main__':
 
     listen(hasNS_thresh=args.hasNS_thresh,
            far_thresh_per_year=args.FAR_thresh,
-           action=args.action
+           action=args.action,
+           allowed_notice_types=allowed_notice_types
            )

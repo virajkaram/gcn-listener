@@ -9,7 +9,8 @@ from pathlib import Path
 import getpass
 import gzip
 import logging
-from gcn_listener.gcn_utils import get_dateobs, get_notice_type, get_properties
+from gcn_listener.gcn_utils import get_dateobs, get_notice_type, get_properties, \
+    notice_types_dict
 from astropy.time import Time
 import numpy as np
 from twilio.rest import Client
@@ -24,7 +25,7 @@ def send_voevent_email(voevent,
     dateobs = get_dateobs(voevent)
     date_isot = Time(dateobs).isot
     properties = get_properties(voevent)
-    notice_type = get_notice_type(voevent)
+    notice_type = notice_types_dict[get_notice_type(voevent)]
     email_subject = f"GCN {notice_type} {date_isot}"
     email_text = f"GCN {notice_type} {date_isot}"
     email_text += f"\nProperties: {properties}"
@@ -39,7 +40,7 @@ def send_voevent_message(voevent,
     dateobs = get_dateobs(voevent)
     date_isot = Time(dateobs).isot
     properties = get_properties(voevent)
-    notice_type = get_notice_type(voevent)
+    notice_type = notice_types_dict[get_notice_type(voevent)]
     message_text = f"GCN {notice_type} {date_isot}"
     message_text += f"\nProperties: {properties}"
     logger.info(f"Sending message to {message_recipients}"
@@ -51,7 +52,7 @@ def make_voevent_phone_call(voevent,
                             phone_recipients: str | list[str]):
     dateobs = get_dateobs(voevent)
     date_isot = Time(dateobs).isot
-    notice_type = get_notice_type(voevent)
+    notice_type = notice_types_dict[get_notice_type(voevent)]
     phone_text = f"New GCN alert with notice type {notice_type} {date_isot}. "
     phone_text += "Check your message for more information"
     logger.info(f"Making phone call to {phone_recipients}"

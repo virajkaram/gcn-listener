@@ -9,6 +9,18 @@ import lxml
 import xmlschema
 
 
+notice_types_dict = {150: 'LVC_PRELIMINARY',
+                     151: 'LVC_INITIAL',
+                     152: 'LVC_UPDATE',
+                     153: 'LVC_TEST',
+                     154: 'LVC_COUNTERPART',
+                     163: 'LVC_EARLY_WARNING',
+                     164: 'LVC_RETRACTION'
+                     }
+
+inv_notice_types_dict = {v: k for k, v in notice_types_dict.items()}
+
+
 def get_root_from_payload(payload):
     schema = (
         f'{os.path.dirname(__file__)}/data/schema/VOEvent-v2.0.xsd'
