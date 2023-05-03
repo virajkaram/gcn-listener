@@ -5,7 +5,7 @@ from astropy.time import Time
 import os
 import gcn
 from gcn_listener.actions import send_voevent_email, send_gmail, send_message, \
-    make_phone_call
+    make_phone_call, send_voevent_message, make_voevent_phone_call
 import argparse
 import logging
 from pathlib import Path
@@ -55,8 +55,9 @@ def needs_action(voevent,
 
 def listen(hasNS_thresh: float = None,
            far_thresh_per_year: float = None,
-           action: str = 'email',
-           email_recipients: str = os.getenv('RECIPIENT_EMAIL', None)
+           action: list = ['email'],
+           email_recipients: str = os.getenv('RECIPIENT_EMAIL', None),
+           phone_recipients: str = os.getenv('RECIPIENT_PHONE', None)
            ):
     # Connect as a consumer.
     # Warning: don't share the client secret with others.
@@ -94,7 +95,7 @@ def listen(hasNS_thresh: float = None,
                                              far_thresh_per_year=far_thresh_per_year)
 
                 if action_needed:
-                    if action == 'email':
+                    if 'email' in action:
                         if email_recipients is None:
                             err = "No email recipients provided"
                             raise ValueError(err)
@@ -104,8 +105,21 @@ def listen(hasNS_thresh: float = None,
                         except Exception as e:
                             logger.error(f"Failed to send email with error {e}")
 
-                    if action == 'phone':
-                        raise NotImplementedError
+                    if 'phone' in action:
+                        if phone_recipients is None:
+                            err = "No phone recipients provided"
+                            raise ValueError(err)
+                        try:
+                            send_voevent_message(voevent,
+                                                 message_recipients=phone_recipients)
+                        except Exception as e:
+                            logger.error(f"Failed to send message with error {e}")
+
+                        try:
+                            make_voevent_phone_call(voevent,
+                                                    phone_recipients=phone_recipients)
+                        except Exception as e:
+                            logger.error(f"Failed to make phone call with error {e}")
 
 
 if __name__ == '__main__':
