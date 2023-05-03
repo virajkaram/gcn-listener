@@ -23,7 +23,7 @@ Then, you can run the listener as follows:
     ```python -m gcn_listener```
 
 You can set several options using the command line:
-```python -m gcn_listener -action email phone``` 
+```python -m gcn_listener -action email sms call``` 
 to get both phone and email notifications
 
 You can view all available options using:
