@@ -14,8 +14,13 @@ logger = logging.getLogger('gcn_listener')
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
-KAFKA_CLIENT_ID = os.getenv('CLIENT_ID', None)
-KAFKA_CLIENT_SECRET = os.getenv('CLIENT_SECRET', None)
+KAFKA_CLIENT_ID = os.getenv('KAFKA_CLIENT_ID', None)
+KAFKA_CLIENT_SECRET = os.getenv('KAFKA_CLIENT_SECRET', None)
+
+if KAFKA_CLIENT_ID is None:
+    raise ValueError("KAFKA_CLIENT_ID not set")
+if KAFKA_CLIENT_SECRET is None:
+    raise ValueError("KAFKA_CLIENT_SECRET not set")
 
 default_allowed_notice_type_list = [gcn.NoticeType.LVC_COUNTERPART,
                                     gcn.NoticeType.LVC_EARLY_WARNING,
