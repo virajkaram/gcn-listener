@@ -4,7 +4,8 @@ from gcn_listener.gcn_utils import get_dateobs, get_properties, get_notice_type,
 from astropy.time import Time
 import os
 import gcn
-from gcn_listener.actions import send_voevent_email, send_gmail
+from gcn_listener.actions import send_voevent_email, send_gmail, send_message, \
+    make_phone_call
 import argparse
 import logging
 from pathlib import Path
@@ -98,7 +99,8 @@ def listen(hasNS_thresh: float = None,
                             err = "No email recipients provided"
                             raise ValueError(err)
                         try:
-                            send_voevent_email(voevent, email_recipients=email_recipients)
+                            send_voevent_email(voevent,
+                                               email_recipients=email_recipients)
                         except Exception as e:
                             logger.error(f"Failed to send email with error {e}")
 
@@ -113,11 +115,11 @@ if __name__ == '__main__':
     parser.add_argument('-FAR_thresh', default=None, type=float,
                         help='Threshold for FAR')
     parser.add_argument('-action', choices=['email', 'phone'], default='email',
-                        help='Action to take')
+                        help='Action to take', nargs="+")
 
     args = parser.parse_args()
 
-    if args.action == 'email':
+    if 'email' in args.action:
         if os.getenv('RECIPIENT_EMAIL', None) is None:
             raise ValueError("No email recipients provided")
         if os.getenv('WATCHDOG_EMAIL', None) is None:
@@ -126,12 +128,29 @@ if __name__ == '__main__':
             raise ValueError("No email recipients provided")
 
         logger.info("Sending test email to recipients")
-        send_gmail(email_recipients= os.getenv('RECIPIENT_EMAIL'),
+        send_gmail(email_recipients=os.getenv('RECIPIENT_EMAIL'),
                    email_subject="Started listening for GCN events",
                    email_text=f"Started listening for GCN events "
-                              f"at {Time(datetime.utcnow()).isot}")
+                              f" at {Time(datetime.utcnow()).isot}")
+
+    if 'phone' in args.action:
+        if os.getenv('RECIPIENT_PHONE', None) is None:
+            raise ValueError("No phone recipients provided")
+        if os.getenv('TWILIO_ACCOUNT_SID', None) is None:
+            raise ValueError("No twilio account SID provided")
+        if os.getenv('TWILIO_AUTH_TOKEN', None) is None:
+            raise ValueError("No twilio auth token provided")
+        if os.getenv('TWILIO_PHONE', None) is None:
+            raise ValueError("No twilio phone number provided")
+
+        logger.info("Sending test SMS to recipients")
+        send_message(message_recipients=os.getenv('RECIPIENT_PHONE'),
+                     message_text="Started listening for GCN events"
+                                  f" at {Time(datetime.utcnow()).isot}")
+
+        make_phone_call(call_recipients=os.getenv('RECIPIENT_PHONE'),
+                        message_text="Started listening for GCN events")
 
     listen(hasNS_thresh=args.hasNS_thresh,
            far_thresh_per_year=args.FAR_thresh,
            )
-

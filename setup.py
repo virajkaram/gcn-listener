@@ -31,6 +31,7 @@ setuptools.setup(
         "astropy",
         "numpy",
         "xmlschema",
+        "twilio"
     ],
     package_data={
     }

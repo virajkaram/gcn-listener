@@ -12,6 +12,7 @@ import logging
 from gcn_listener.gcn_utils import get_dateobs, get_notice_type, get_properties
 from astropy.time import Time
 import numpy as np
+from twilio.rest import Client
 
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,31 @@ def send_voevent_email(voevent,
                 f" with subject {email_subject}"
                 f" and text {email_text}")
     send_gmail(email_recipients, email_subject, email_text)
+
+
+def send_voevent_message(voevent,
+                         message_recipients: str | list[str]):
+    dateobs = get_dateobs(voevent)
+    date_isot = Time(dateobs).isot
+    properties = get_properties(voevent)
+    notice_type = get_notice_type(voevent)
+    message_text = f"GCN {notice_type} {date_isot}"
+    message_text += f"\nProperties: {properties}"
+    logger.info(f"Sending message to {message_recipients}"
+                f" with text {message_text}")
+    send_message(message_recipients, message_text)
+
+
+def make_voevent_phone_call(voevent,
+                            phone_recipients: str | list[str]):
+    dateobs = get_dateobs(voevent)
+    date_isot = Time(dateobs).isot
+    notice_type = get_notice_type(voevent)
+    phone_text = f"New GCN alert with notice type {notice_type} {date_isot}. "
+    phone_text += "Check your message for more information"
+    logger.info(f"Making phone call to {phone_recipients}"
+                f" with text {phone_text}")
+    make_phone_call(phone_recipients, phone_text)
 
 
 def send_gmail(
@@ -109,3 +135,73 @@ def send_gmail(
     with smtplib.SMTP_SSL("smtp.gmail.com", GMAIL_PORT, context=context) as server:
         server.login(email_sender, email_password)
         server.send_message(msg)
+
+
+def send_message(
+    message_recipients: str | list[str],
+    message_text: str,
+    twilio_account_sid: str = os.getenv("TWILIO_ACCOUNT_SID", None),
+    twilio_auth_token: str = os.getenv("TWILIO_AUTH_TOKEN", None),
+    twilio_phone_number: str = os.getenv("TWILIO_PHONE", None),
+):
+    """
+    Function to send a text message to a list of recipients from a twilio account.
+
+    :param message_recipients: recipients for message
+    :param message_text: Text to send
+    :param twilio_account_sid: Twilio account SID
+    :param twilio_auth_token: Twilio auth token
+    :param twilio_phone_number: Twilio phone number
+    :return:
+    """
+    # pylint: disable=too-many-arguments
+
+    if not isinstance(message_recipients, list):
+        message_recipients = [message_recipients]
+
+    if twilio_account_sid is None:
+        twilio_account_sid = getpass.getpass(prompt="Twilio account SID: ")
+
+    if twilio_auth_token is None:
+        twilio_auth_token = getpass.getpass(prompt="Twilio auth token: ")
+
+    if twilio_phone_number is None:
+        twilio_phone_number = getpass.getpass(prompt="Twilio phone number: ")
+
+    client = Client(twilio_account_sid, twilio_auth_token)
+
+    for recipient in message_recipients:
+        logger.info(f"Sending message to {recipient}")
+        client.messages.create(
+            body=message_text, from_=twilio_phone_number, to=recipient
+        )
+
+
+def make_phone_call(
+        call_recipients: str | list[str],
+        message_text: str,
+        twilio_account_sid: str = os.getenv("TWILIO_ACCOUNT_SID", None),
+        twilio_auth_token: str = os.getenv("TWILIO_AUTH_TOKEN", None),
+        twilio_phone_number: str = os.getenv("TWILIO_PHONE", None),
+):
+    if not isinstance(call_recipients, list):
+        call_recipients = [call_recipients]
+
+    if twilio_account_sid is None:
+        twilio_account_sid = getpass.getpass(prompt="Twilio account SID: ")
+
+    if twilio_auth_token is None:
+        twilio_auth_token = getpass.getpass(prompt="Twilio auth token: ")
+
+    if twilio_phone_number is None:
+        twilio_phone_number = getpass.getpass(prompt="Twilio phone number: ")
+
+    client = Client(twilio_account_sid, twilio_auth_token)
+
+    for recipient in call_recipients:
+        logger.info(f"Calling {recipient}")
+        client.calls.create(
+            twiml=f'<Response><Say>{message_text}</Say></Response>',
+            from_=twilio_phone_number,
+            to=recipient
+        )
