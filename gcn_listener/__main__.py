@@ -79,7 +79,7 @@ def listen(hasNS_thresh: float = None,
 
                 with open(f"~/Data/gcn_listener/voevents/{Time(dateobs).isot}",
                           'w') as f:
-                    f.write(value)
+                    f.write(str(value))
                 logger.info(f"Written VOevent to file - "
                             f"~/Data/gcn_listener/voevents/{Time(dateobs).isot}")
 
