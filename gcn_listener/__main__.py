@@ -1,3 +1,4 @@
+import numpy as np
 from gcn_kafka import Consumer
 from gcn_listener.gcn_utils import get_dateobs, get_properties, get_notice_type, \
     get_root_from_payload
@@ -105,7 +106,7 @@ def listen(hasNS_thresh: float = None,
                         except Exception as e:
                             logger.error(f"Failed to send email with error {e}")
 
-                    if 'phone' in action:
+                    if 'sms' in action:
                         if phone_recipients is None:
                             err = "No phone recipients provided"
                             raise ValueError(err)
@@ -115,6 +116,7 @@ def listen(hasNS_thresh: float = None,
                         except Exception as e:
                             logger.error(f"Failed to send message with error {e}")
 
+                    if 'call' in action:
                         try:
                             make_voevent_phone_call(voevent,
                                                     phone_recipients=phone_recipients)
@@ -128,7 +130,7 @@ if __name__ == '__main__':
                         help='Threshold for HasNS')
     parser.add_argument('-FAR_thresh', default=None, type=float,
                         help='Threshold for FAR')
-    parser.add_argument('-action', choices=['email', 'phone'], default='email',
+    parser.add_argument('-action', choices=['email', 'sms', 'call'], default='email',
                         help='Action to take', nargs="+")
 
     args = parser.parse_args()
@@ -147,7 +149,7 @@ if __name__ == '__main__':
                    email_text=f"Started listening for GCN events "
                               f" at {Time(datetime.utcnow()).isot}")
 
-    if 'phone' in args.action:
+    if np.logical_or('sms' in args.action, 'call' in args.action):
         if os.getenv('RECIPIENT_PHONE', None) is None:
             raise ValueError("No phone recipients provided")
         if os.getenv('TWILIO_ACCOUNT_SID', None) is None:
@@ -157,13 +159,16 @@ if __name__ == '__main__':
         if os.getenv('TWILIO_PHONE', None) is None:
             raise ValueError("No twilio phone number provided")
 
-        logger.info("Sending test SMS to recipients")
-        send_message(message_recipients=os.getenv('RECIPIENT_PHONE'),
-                     message_text="Started listening for GCN events"
-                                  f" at {Time(datetime.utcnow()).isot}")
+        if 'sms' in args.action:
+            logger.info("Sending test SMS to recipients")
+            send_message(message_recipients=os.getenv('RECIPIENT_PHONE'),
+                         message_text="Started listening for GCN events"
+                                      f" at {Time(datetime.utcnow()).isot}")
 
-        make_phone_call(call_recipients=os.getenv('RECIPIENT_PHONE'),
-                        message_text="Started listening for GCN events")
+        if 'call' in args.action:
+            logger.info("Making test phone call to recipients")
+            make_phone_call(call_recipients=os.getenv('RECIPIENT_PHONE'),
+                            message_text="Started listening for GCN events")
 
     listen(hasNS_thresh=args.hasNS_thresh,
            far_thresh_per_year=args.FAR_thresh,
