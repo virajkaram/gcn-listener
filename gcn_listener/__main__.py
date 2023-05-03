@@ -167,4 +167,5 @@ if __name__ == '__main__':
 
     listen(hasNS_thresh=args.hasNS_thresh,
            far_thresh_per_year=args.FAR_thresh,
+           action=args.action
            )
