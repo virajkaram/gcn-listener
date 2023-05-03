@@ -27,6 +27,9 @@ def send_voevent_email(voevent,
     email_subject = f"GCN {notice_type} {date_isot}"
     email_text = f"GCN {notice_type} {date_isot}"
     email_text += f"\nProperties: {properties}"
+    logger.info(f"Sending email to {email_recipients}"
+                f" with subject {email_subject}"
+                f" and text {email_text}")
     send_gmail(email_recipients, email_subject, email_text)
 
 
