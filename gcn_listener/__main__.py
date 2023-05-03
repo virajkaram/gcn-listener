@@ -4,17 +4,18 @@ from gcn_listener.gcn_utils import get_dateobs, get_properties, get_notice_type,
 from astropy.time import Time
 import os
 import gcn
-from gcn_listener.actions import send_voevent_email
+from gcn_listener.actions import send_voevent_email, send_gmail
 import argparse
 import logging
 from pathlib import Path
+from datetime import datetime
 
 logger = logging.getLogger('gcn_listener')
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
-CLIENT_ID = os.getenv('CLIENT_ID', None)
-CLIENT_SECRET = os.getenv('CLIENT_SECRET', None)
+KAFKA_CLIENT_ID = os.getenv('CLIENT_ID', None)
+KAFKA_CLIENT_SECRET = os.getenv('CLIENT_SECRET', None)
 
 default_allowed_notice_type_list = [gcn.NoticeType.LVC_COUNTERPART,
                                     gcn.NoticeType.LVC_EARLY_WARNING,
@@ -53,8 +54,8 @@ def listen(hasNS_thresh: float = None,
            ):
     # Connect as a consumer.
     # Warning: don't share the client secret with others.
-    consumer = Consumer(client_id=CLIENT_ID,
-                        client_secret=CLIENT_SECRET)
+    consumer = Consumer(client_id=KAFKA_CLIENT_ID,
+                        client_secret=KAFKA_CLIENT_SECRET)
     # Subscribe to topics and receive alerts
     consumer.subscribe(['gcn.classic.voevent.LVC_COUNTERPART',
                         'gcn.classic.voevent.LVC_EARLY_WARNING',
@@ -91,7 +92,10 @@ def listen(hasNS_thresh: float = None,
                         if email_recipients is None:
                             err = "No email recipients provided"
                             raise ValueError(err)
-                        send_voevent_email(voevent, email_recipients=email_recipients)
+                        try:
+                            send_voevent_email(voevent, email_recipients=email_recipients)
+                        except Exception as e:
+                            logger.error(f"Failed to send email with error {e}")
 
                     if action == 'phone':
                         raise NotImplementedError
@@ -108,6 +112,21 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.action == 'email':
+        if os.getenv('RECIPIENT_EMAIL', None) is None:
+            raise ValueError("No email recipients provided")
+        if os.getenv('WATCHDOG_EMAIL', None) is None:
+            raise ValueError("No email recipients provided")
+        if os.getenv('WATCHDOG_EMAIL_PASSWORD', None) is None:
+            raise ValueError("No email recipients provided")
+
+        logger.info("Sending test email to recipients")
+        send_gmail(email_recipients= os.getenv('RECIPIENT_EMAIL'),
+                   email_subject="Started listening for GCN events",
+                   email_text=f"Started listening for GCN events "
+                              f"at {Time(datetime.utcnow()).isot}")
+
     listen(hasNS_thresh=args.hasNS_thresh,
            far_thresh_per_year=args.FAR_thresh,
            )
+
