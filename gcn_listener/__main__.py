@@ -52,7 +52,7 @@ def needs_action(voevent,
                                          < far_thresh_per_year)
 
     tags = get_tags(voevent)
-    logger.info(f"Event tags: {list(tags).dtype}")
+    logger.info(f"Event tags: {list(tags)}")
 
     for tag in tags:
         logger.info(f"Tag: {tag}")
