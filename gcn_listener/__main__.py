@@ -53,7 +53,8 @@ def needs_action(voevent,
 
     tags = get_tags(voevent)
     logger.info(f"Event tags: {list(tags)}")
-    tags_intersection = list(set(list(tags)).intersection(set(reject_tags)))
+    tags_intersection = np.intersect1d(list(tags), reject_tags)
+    # list(set(tags).intersection(set(reject_tags)))
     logger.info(f"Tags to reject: {reject_tags}")
     logger.info(f"Tags intersection: {tags_intersection}")
     if len(tags_intersection) > 0:
