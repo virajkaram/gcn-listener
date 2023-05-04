@@ -10,7 +10,7 @@ import getpass
 import gzip
 import logging
 from gcn_listener.gcn_utils import get_dateobs, get_notice_type, get_properties, \
-    notice_types_dict
+    notice_types_dict, get_tags
 from astropy.time import Time
 import numpy as np
 from twilio.rest import Client
@@ -21,14 +21,17 @@ GMAIL_PORT = 465  # For SSL
 
 
 def send_voevent_email(voevent,
-                       email_recipients: str | list[str]):
+                       email_recipients: str | list[str],
+                       ):
     dateobs = get_dateobs(voevent)
     date_isot = Time(dateobs).isot
     properties = get_properties(voevent)
+    tags = get_tags(voevent)
     notice_type = notice_types_dict[get_notice_type(voevent)]
     email_subject = f"GCN {notice_type} {date_isot}"
     email_text = f"GCN {notice_type} {date_isot}"
     email_text += f"\nProperties: {properties}"
+    email_text += f"\nTags: {tags}"
     logger.info(f"Sending email to {email_recipients}"
                 f" with subject {email_subject}"
                 f" and text {email_text}")
@@ -40,9 +43,11 @@ def send_voevent_message(voevent,
     dateobs = get_dateobs(voevent)
     date_isot = Time(dateobs).isot
     properties = get_properties(voevent)
+    tags = get_tags(voevent)
     notice_type = notice_types_dict[get_notice_type(voevent)]
     message_text = f"GCN {notice_type} {date_isot}"
     message_text += f"\nProperties: {properties}"
+    message_text += f"\nTags: {tags}"
     logger.info(f"Sending message to {message_recipients}"
                 f" with text {message_text}")
     send_message(message_recipients, message_text)

@@ -1,7 +1,7 @@
 import numpy as np
 from gcn_kafka import Consumer
 from gcn_listener.gcn_utils import get_dateobs, get_properties, get_notice_type, \
-    get_root_from_payload, inv_notice_types_dict
+    get_root_from_payload, inv_notice_types_dict, get_tags
 from astropy.time import Time
 import os
 import gcn
@@ -36,7 +36,8 @@ default_allowed_notice_type_list = [gcn.NoticeType.LVC_COUNTERPART,
 def needs_action(voevent,
                  hasNS_thresh: float = None,
                  far_thresh_per_year: float = None,
-                 allowed_notice_types: list = default_allowed_notice_type_list):
+                 allowed_notice_types: list = default_allowed_notice_type_list,
+                 reject_tags: list = []):
     properties = get_properties(voevent)
 
     notice_type = get_notice_type(voevent)
@@ -50,7 +51,11 @@ def needs_action(voevent,
         action_needed = action_needed & (properties['FAR'] * 86400 * 365
                                          < far_thresh_per_year)
 
-    action_needed = action_needed & (notice_type in allowed_notice_types)
+    tags = get_tags(voevent)
+    logger.info(f"Event tags: {tags}")
+    tags_intersection = list(set(tags).intersection(set(reject_tags)))
+    action_needed = action_needed & (notice_type in allowed_notice_types) \
+                    & (len(tags_intersection) == 0)
     return action_needed
 
 
@@ -76,13 +81,13 @@ def listen(hasNS_thresh: float = None,
     while True:
         for message in consumer.consume(timeout=1):
             value = message.value()
-            logger.info(value)
             if 'Subscribed topic' in str(value):
                 continue
             if len(value) > 0:
                 voevent = get_root_from_payload(value)
                 dateobs = get_dateobs(voevent)
 
+                logger.info(f"Received VOevent for {dateobs}")
                 savedir = Path(f"~/Data/gcn_listener/voevents/")
                 if not savedir.exists():
                     savedir.mkdir(parents=True)

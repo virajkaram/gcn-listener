@@ -7,6 +7,7 @@ from astropy.time import Time
 import os
 import lxml
 import xmlschema
+from urllib.parse import urlparse
 
 
 notice_types_dict = {150: 'LVC_PRELIMINARY',
@@ -130,3 +131,97 @@ def get_properties(root):
             property_dict[property_name] = value
 
     return property_dict
+
+
+def get_tags(root):
+    """Get source classification tag strings from GCN notice."""
+    # Get event stream.
+    mission = urlparse(root.attrib['ivorn']).path.lstrip('/')
+    yield mission
+
+    # What type of burst is this: GRB or GW?
+    try:
+        value = root.find("./Why/Inference/Concept").text
+    except AttributeError:
+        pass
+    else:
+        if value == 'process.variation.burst;em.gamma':
+            # Is this a GRB at all?
+            try:
+                value = root.find(".//Param[@name='GRB_Identified']").attrib['value']
+            except AttributeError:
+                yield 'GRB'
+            else:
+                if value == 'false':
+                    yield 'Not GRB'
+                else:
+                    yield 'GRB'
+        elif value == 'process.variation.trans;em.gamma':
+            yield 'transient'
+
+    # LIGO/Virgo alerts don't provide the Why/Inference/Concept tag,
+    # so let's just identify it as a GW event based on the notice type.
+    notice_type = gcn.get_notice_type(root)
+    if notice_type in {
+        gcn.NoticeType.LVC_PRELIMINARY,
+        gcn.NoticeType.LVC_INITIAL,
+        gcn.NoticeType.LVC_UPDATE,
+        gcn.NoticeType.LVC_RETRACTION,
+    }:
+        yield 'GW'
+    elif notice_type in {
+        gcn.NoticeType.ICECUBE_ASTROTRACK_GOLD,
+        gcn.NoticeType.ICECUBE_ASTROTRACK_BRONZE,
+    }:
+        yield 'Neutrino'
+        yield 'IceCube'
+
+    if notice_type == gcn.NoticeType.ICECUBE_ASTROTRACK_GOLD:
+        yield 'Gold'
+    elif notice_type == gcn.NoticeType.ICECUBE_ASTROTRACK_BRONZE:
+        yield 'Bronze'
+
+    # Is this a retracted LIGO/Virgo event?
+    if notice_type == gcn.NoticeType.LVC_RETRACTION:
+        yield 'retracted'
+
+    # Is this a short GRB, or a long GRB?
+    try:
+        value = root.find(".//Param[@name='Long_short']").attrib['value']
+    except AttributeError:
+        pass
+    else:
+        if value != 'unknown':
+            yield value.lower()
+
+    # Gaaaaaah! Alerts of type FERMI_GBM_SUBTHRESH store the
+    # classification in a different property!
+    try:
+        value = root.find(".//Param[@name='Duration_class']").attrib['value'].title()
+    except AttributeError:
+        pass
+    else:
+        if value != 'unknown':
+            yield value.lower()
+
+    # Get LIGO/Virgo source classification, if present.
+    classifications = [
+        (float(elem.attrib['value']), elem.attrib['name'])
+        for elem in root.iterfind("./What/Group[@type='Classification']/Param")
+    ]
+    if classifications:
+        _, classification = max(classifications)
+        yield classification
+
+    search = root.find("./What/Param[@name='Search']")
+    if search is not None:
+        yield search.attrib['value']
+
+    # Get Instruments, if present.
+    try:
+        value = root.find(".//Param[@name='Instruments']").attrib['value']
+    except AttributeError:
+        pass
+    else:
+        instruments = value.split(",")
+        yield from instruments
