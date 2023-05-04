@@ -54,6 +54,9 @@ def needs_action(voevent,
     tags = get_tags(voevent)
     logger.info(f"Event tags: {list(tags)}")
     tags_intersection = list(set(tags).intersection(set(reject_tags)))
+    if len(tags_intersection)>0:
+        logger.info(f"Rejected event due to {tags_intersection} tags")
+        
     action_needed = action_needed & (notice_type in allowed_notice_types) \
                     & (len(tags_intersection) == 0)
     return action_needed
@@ -63,6 +66,7 @@ def listen(hasNS_thresh: float = None,
            far_thresh_per_year: float = None,
            action: list = ['email'],
            allowed_notice_types: list = default_allowed_notice_type_list,
+           reject_tags: list = ['MDC'],
            email_recipients: str = os.getenv('RECIPIENT_EMAIL', None),
            phone_recipients: str = os.getenv('RECIPIENT_PHONE', None)
            ):
@@ -100,7 +104,8 @@ def listen(hasNS_thresh: float = None,
 
                 action_needed = needs_action(voevent, hasNS_thresh=hasNS_thresh,
                                              far_thresh_per_year=far_thresh_per_year,
-                                             allowed_notice_types=allowed_notice_types)
+                                             allowed_notice_types=allowed_notice_types,
+                                             reject_tags=reject_tags)
 
                 if action_needed:
                     if 'email' in action:
@@ -142,8 +147,11 @@ if __name__ == '__main__':
     parser.add_argument('-notices', choices=['PRELIMINARY', 'INITIAL', 'RETRACTION',
                                              'UPDATE', 'TEST', 'EARLY_WARNING',
                                              'COUNTERPART', 'all'],
-                        default=['PRELIMINARY', 'INITIAL', 'RETRACTION', 'UPDATE'],
+                        default=['PRELIMINARY', 'INITIAL', 'UPDATE', 'EARLY_WARNING'],
                         help='Action to take', nargs="+")
+    # Removing RETRACTIONS because MOCK retractions don't come with MDC tag (very dumb)
+    parser.add_argument('-include_mocks', action='store_true',
+                        help='Include mock events (helpful for testing)')
 
     args = parser.parse_args()
 
@@ -154,6 +162,10 @@ if __name__ == '__main__':
 
     allowed_notice_types = [inv_notice_types_dict[f"LVC_{notice}"]
                             for notice in notices]
+
+    reject_tags = ['MDC']
+    if args.include_mocks:
+        reject_tags = []
 
     if 'email' in args.action:
         if os.getenv('RECIPIENT_EMAIL', None) is None:
@@ -193,5 +205,6 @@ if __name__ == '__main__':
     listen(hasNS_thresh=args.hasNS_thresh,
            far_thresh_per_year=args.FAR_thresh,
            action=args.action,
-           allowed_notice_types=allowed_notice_types
+           allowed_notice_types=allowed_notice_types,
+           reject_tags=reject_tags
            )
