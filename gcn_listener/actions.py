@@ -31,7 +31,7 @@ def send_voevent_email(voevent,
     email_subject = f"GCN {notice_type} {date_isot}"
     email_text = f"GCN {notice_type} {date_isot}"
     email_text += f"\nProperties: {properties}"
-    email_text += f"\nTags: {tags}"
+    email_text += f"\nTags: {list(tags)}"
     logger.info(f"Sending email to {email_recipients}"
                 f" with subject {email_subject}"
                 f" and text {email_text}")
@@ -47,7 +47,7 @@ def send_voevent_message(voevent,
     notice_type = notice_types_dict[get_notice_type(voevent)]
     message_text = f"GCN {notice_type} {date_isot}"
     message_text += f"\nProperties: {properties}"
-    message_text += f"\nTags: {tags}"
+    message_text += f"\nTags: {list(tags)}"
     logger.info(f"Sending message to {message_recipients}"
                 f" with text {message_text}")
     send_message(message_recipients, message_text)

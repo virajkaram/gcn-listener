@@ -37,7 +37,7 @@ def needs_action(voevent,
                  hasNS_thresh: float = None,
                  far_thresh_per_year: float = None,
                  allowed_notice_types: list = default_allowed_notice_type_list,
-                 reject_tags: list = []):
+                 reject_tags: list = ['MDC']):
     properties = get_properties(voevent)
 
     notice_type = get_notice_type(voevent)
@@ -52,7 +52,7 @@ def needs_action(voevent,
                                          < far_thresh_per_year)
 
     tags = get_tags(voevent)
-    logger.info(f"Event tags: {tags}")
+    logger.info(f"Event tags: {list(tags)}")
     tags_intersection = list(set(tags).intersection(set(reject_tags)))
     action_needed = action_needed & (notice_type in allowed_notice_types) \
                     & (len(tags_intersection) == 0)
