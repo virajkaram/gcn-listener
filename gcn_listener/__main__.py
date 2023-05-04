@@ -53,10 +53,10 @@ def needs_action(voevent,
 
     tags = get_tags(voevent)
     logger.info(f"Event tags: {list(tags)}")
-    tags_intersection = list(set(tags).intersection(set(reject_tags)))
-    if len(tags_intersection)>0:
+    tags_intersection = list(set(list(tags)).intersection(set(reject_tags)))
+    if len(tags_intersection) > 0:
         logger.info(f"Rejected event due to {tags_intersection} tags")
-        
+
     action_needed = action_needed & (notice_type in allowed_notice_types) \
                     & (len(tags_intersection) == 0)
     return action_needed
@@ -166,7 +166,7 @@ if __name__ == '__main__':
     reject_tags = ['MDC']
     if args.include_mocks:
         reject_tags = []
-
+    logger.info(f"Rejecting tags {reject_tags}")
     if 'email' in args.action:
         if os.getenv('RECIPIENT_EMAIL', None) is None:
             raise ValueError("No email recipients provided")
