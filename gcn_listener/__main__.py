@@ -52,16 +52,22 @@ def needs_action(voevent,
                                          < far_thresh_per_year)
 
     tags = get_tags(voevent)
-    logger.info(f"Event tags: {list(tags)}")
-    tags_intersection = np.intersect1d(list(tags), reject_tags)
+    logger.info(f"Event tags: {list(tags).dtype}")
+
+    for tag in tags:
+        logger.info(f"Tag: {tag}")
+        if tag in reject_tags:
+            logger.info(f"Rejected event due to {tag} tag")
+            action_needed = False
+            break
     # list(set(tags).intersection(set(reject_tags)))
     logger.info(f"Tags to reject: {reject_tags}")
-    logger.info(f"Tags intersection: {tags_intersection}")
-    if len(tags_intersection) > 0:
-        logger.info(f"Rejected event due to {tags_intersection} tags")
+    # logger.info(f"Tags intersection: {tags_intersection}")
+    # if len(tags_intersection) > 0:
+    #     logger.info(f"Rejected event due to {tags_intersection} tags")
 
     action_needed = action_needed & (notice_type in allowed_notice_types) \
-                    & (len(tags_intersection) == 0)
+                    # & (len(tags_intersection) == 0)
     return action_needed
 
 
