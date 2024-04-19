@@ -77,5 +77,5 @@ def listen_email(listen_from_email: str = "no-reply@gcn.nasa.gov"):
 
 if __name__ == "__main__":
     while True:
-        listen_email(listen_from_email="viraj.karambelkar@gmail.com")
+        listen_email()
         sleep(30)
