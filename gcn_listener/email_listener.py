@@ -58,8 +58,11 @@ def listen_email(listen_from_email: str = "no-reply@gcn.nasa.gov"):
 
                 from_line = ["FROM" in x for x in body_str_lines]
 
-                print(body_str_lines[from_line][0])
-                if "ep_ta@bao.ac.cn" in body_str_lines[from_line]:
+                if len(body_str_lines[from_line]) == 0:
+                    continue
+                from_text = body_str_lines[from_line][0]
+                print(from_text)
+                if "ep_ta@bao.ac.cn" in from_text:
                     print(f"Found Einstein Probe email with id {i}")
                     make_phone_call(call_recipients=recipients,
                                     message_text="New Einstein Probe alert")
@@ -74,5 +77,5 @@ def listen_email(listen_from_email: str = "no-reply@gcn.nasa.gov"):
 
 if __name__ == "__main__":
     while True:
-        listen_email()
-        sleep(900)
+        listen_email(listen_from_email="viraj.karambelkar@gmail.com")
+        sleep(30)
